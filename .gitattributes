@@ -1,0 +1,7 @@
+.gitattributes text
+.gitignore text
+*.toml text
+*.txt text
+*.md text
+*.rs text
+*.xml text
