@@ -8,40 +8,43 @@ pub fn part_1(input: &str) -> u32 {
 
 pub fn part_2(input: &str) -> u32 {
     fn parse_calibration_value(input: &str) -> u32 {
-        10 * get_first_digit(input) + get_last_digit(input)
+        10 * first_digit(input) + last_digit(input)
     }
     input.lines().map(parse_calibration_value).sum()
 }
 
-fn get_first_digit(mut input: &str) -> u32 {
+fn first_digit(mut input: &str) -> u32 {
     loop {
         if let Some(digit) = input.chars().next().and_then(|c| c.to_digit(10)) {
             return digit;
         }
-        for digit in 1..=9 {
-            if input.starts_with(DIGITS[digit - 1]) {
-                return u32::try_from(digit).unwrap();
-            }
+        if let Some(digit) = find_spelled_digit(|spelled| input.starts_with(spelled)) {
+            return digit;
         }
         input = &input[1..];
     }
 }
 
-fn get_last_digit(mut input: &str) -> u32 {
+fn last_digit(mut input: &str) -> u32 {
     loop {
         if let Some(digit) = input.chars().last().and_then(|c| c.to_digit(10)) {
             return digit;
         }
-        for digit in 1..=9 {
-            if input.ends_with(DIGITS[digit - 1]) {
-                return u32::try_from(digit).unwrap();
-            }
+        if let Some(digit) = find_spelled_digit(|spelled| input.ends_with(spelled)) {
+            return digit;
         }
         input = &input[..(input.len() - 1)];
     }
 }
 
-const DIGITS: [&str; 9] = [
+fn find_spelled_digit(predicate: impl Fn(&str) -> bool) -> Option<u32> {
+    SPELLED_DIGITS
+        .iter()
+        .position(|spelled| predicate(spelled))
+        .map(|pos| u32::try_from(pos + 1).unwrap())
+}
+
+const SPELLED_DIGITS: [&str; 9] = [
     "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
 ];
 
