@@ -12,7 +12,7 @@ pub fn part_1(input: &str) -> u32 {
 #[must_use]
 pub fn part_2(input: &str) -> u32 {
     let Ok(schematic) = Schematic::from_str(input);
-    schematic.total_gear_ratios()
+    schematic.gear_ratios().sum()
 }
 
 #[cfg(test)]

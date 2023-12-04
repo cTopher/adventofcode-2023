@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use std::rc::Rc;
 use std::str::FromStr;
 
@@ -8,56 +9,65 @@ pub struct Schematic {
 #[derive(Debug, PartialEq, Eq, Hash)]
 enum Value {
     Number(Rc<u32>),
-    Symbol { is_gear: bool },
+    Gear,
+    OtherSymbol,
     Period,
 }
 
 // I hate everything about all this code.
 impl Schematic {
     pub fn part_numbers(&self) -> impl Iterator<Item = u32> + '_ {
-        let mut result = Vec::new();
-        self.values.iter().enumerate().for_each(|(i, row)| {
-            row.iter().enumerate().for_each(|(j, value)| {
-                if matches!(value, Value::Symbol { .. }) {
-                    for i in i.saturating_sub(1)..=(i + 1) {
-                        for j in j.saturating_sub(1)..=(j + 1) {
-                            if let Some(Value::Number(n)) =
-                                self.values.get(i).and_then(|row| row.get(j))
-                            {
-                                result.push(n);
-                            }
-                        }
-                    }
-                }
-            });
-        });
-        result.dedup_by(|a, b| Rc::ptr_eq(a, b));
-        result.into_iter().map(|n| **n)
+        self.values
+            .iter()
+            .enumerate()
+            .flat_map(move |(i, row)| {
+                row.iter()
+                    .enumerate()
+                    .filter(|(_, value)| value.is_symbol())
+                    .flat_map(move |(j, _)| self.adjacent_numbers(i, j))
+            })
+            .dedup_by(Rc::ptr_eq)
+            .map(|n| *n)
     }
 
-    pub fn total_gear_ratios(&self) -> u32 {
-        let mut result = 0;
-        self.values.iter().enumerate().for_each(|(i, row)| {
-            row.iter().enumerate().for_each(|(j, value)| {
-                if matches!(value, Value::Symbol { is_gear: true }) {
-                    let mut numbers = Vec::new();
-                    for i in i.saturating_sub(1)..=(i + 1) {
-                        for j in j.saturating_sub(1)..=(j + 1) {
-                            if let Some(Value::Number(n)) =
-                                self.values.get(i).and_then(|row| row.get(j))
-                            {
-                                numbers.push(n);
-                            }
-                        }
-                    }
-                    numbers.dedup_by(|a, b| Rc::ptr_eq(a, b));
+    pub fn gear_ratios(&self) -> impl Iterator<Item = u32> + '_ {
+        self.values.iter().enumerate().flat_map(move |(i, row)| {
+            row.iter()
+                .enumerate()
+                .filter(move |&(_, value)| value == &Value::Gear)
+                .filter_map(move |(j, _)| {
+                    let numbers: Vec<_> = self.adjacent_numbers(i, j).collect();
                     if numbers.len() == 2 {
-                        result += **numbers[0] * **numbers[1];
+                        Some(*numbers[0] * *numbers[1])
+                    } else {
+                        None
                     }
-                }
-            });
-        });
-        result
+                })
+        })
+    }
+
+    fn adjacent_numbers(&self, i: usize, j: usize) -> impl Iterator<Item = Rc<u32>> + '_ {
+        (i.saturating_sub(1)..=(i + 1))
+            .flat_map(move |i| {
+                let row = self.values.get(i);
+                (j.saturating_sub(1)..=(j + 1)).filter_map(move |j| row.and_then(|row| row.get(j)))
+            })
+            .filter_map(Value::number)
+            .dedup_by(Rc::ptr_eq)
+    }
+}
+
+impl Value {
+    fn number(&self) -> Option<Rc<u32>> {
+        if let Self::Number(n) = self {
+            Some(n.clone())
+        } else {
+            None
+        }
+    }
+
+    fn is_symbol(&self) -> bool {
+        self == &Self::Gear || self == &Self::OtherSymbol
     }
 }
 
@@ -82,11 +92,11 @@ impl FromStr for Schematic {
                         }
                         number = 0;
                         digit = 0;
-                        if c == '.' {
-                            values.push(Value::Period);
-                        } else {
-                            values.push(Value::Symbol { is_gear: c == '*' });
-                        }
+                        values.push(match c {
+                            '.' => Value::Period,
+                            '*' => Value::Gear,
+                            _ => Value::OtherSymbol,
+                        });
                     }
                 }
                 let value = Rc::new(number);
