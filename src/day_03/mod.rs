@@ -1,17 +1,16 @@
-use crate::day_03::engine::Schematic;
 use std::str::FromStr;
 
 mod engine;
 
 #[must_use]
 pub fn part_1(input: &str) -> u32 {
-    let Ok(schematic) = Schematic::from_str(input);
+    let Ok(schematic) = engine::Schematic::from_str(input);
     schematic.part_numbers().sum()
 }
 
 #[must_use]
 pub fn part_2(input: &str) -> u32 {
-    let Ok(schematic) = Schematic::from_str(input);
+    let Ok(schematic) = engine::Schematic::from_str(input);
     schematic.gear_ratios().sum()
 }
 
