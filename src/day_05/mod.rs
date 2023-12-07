@@ -1,32 +1,19 @@
-use game::{CubeSet, Game};
+use std::str::FromStr;
 
-mod game;
+use model::Almanac;
 
-fn parse_games(input: &str) -> impl Iterator<Item = Game> + '_ {
-    input.lines().map(|line| {
-        let Ok(game) = line.parse();
-        game
-    })
-}
+mod model;
 
 #[must_use]
 pub fn part_1(input: &str) -> u32 {
-    let bag = CubeSet {
-        red: 12,
-        green: 13,
-        blue: 14,
-    };
-    parse_games(input)
-        .filter(|game| game.sets.iter().all(|set| bag.contains(set)))
-        .map(|game| game.id)
-        .sum()
+    let Ok(almanac) = Almanac::from_str(input);
+    almanac.seed_locations().min().unwrap()
 }
 
 #[must_use]
 pub fn part_2(input: &str) -> u32 {
-    parse_games(input)
-        .map(|game| game.minimum_set().power())
-        .sum()
+    let Ok(almanac) = Almanac::from_str(input);
+    almanac.seed_locations().min().unwrap()
 }
 
 #[cfg(test)]
@@ -42,22 +29,22 @@ mod tests {
 
     #[test]
     fn example_1() {
-        assert_eq!(8, part_1(EXAMPLE));
+        assert_eq!(35, part_1(EXAMPLE));
     }
 
     #[test]
     fn answer_1() {
-        assert_eq!(2512, part_1(INPUT));
+        assert_eq!(0, part_1(INPUT));
     }
 
     #[test]
     fn example_2() {
-        assert_eq!(2286, part_2(EXAMPLE));
+        assert_eq!(0, part_2(EXAMPLE));
     }
 
     #[test]
     fn answer_2() {
-        assert_eq!(67335, part_2(INPUT));
+        assert_eq!(0, part_2(INPUT));
     }
 
     #[bench]

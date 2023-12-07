@@ -16,6 +16,10 @@ pub fn part_2(input: &str) -> u32 {
 
 #[cfg(test)]
 mod tests {
+    extern crate test;
+
+    use test::{black_box, Bencher};
+
     use super::*;
 
     const EXAMPLE: &str = include_str!("example.txt");
@@ -39,5 +43,15 @@ mod tests {
     #[test]
     fn answer_2() {
         assert_eq!(73_074_886, part_2(INPUT));
+    }
+
+    #[bench]
+    fn bench_part_1(b: &mut Bencher) {
+        b.iter(|| black_box(part_1(black_box(INPUT))));
+    }
+
+    #[bench]
+    fn bench_part_2(b: &mut Bencher) {
+        b.iter(|| black_box(part_2(black_box(INPUT))));
     }
 }

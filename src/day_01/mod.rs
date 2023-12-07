@@ -50,6 +50,10 @@ const SPELLED_DIGITS: [&str; 9] = [
 
 #[cfg(test)]
 mod tests {
+    extern crate test;
+
+    use test::{black_box, Bencher};
+
     use super::*;
 
     const EXAMPLE_1: &str = include_str!("example_1.txt");
@@ -74,5 +78,15 @@ mod tests {
     #[test]
     fn answer_2() {
         assert_eq!(54277, part_2(INPUT));
+    }
+
+    #[bench]
+    fn bench_part_1(b: &mut Bencher) {
+        b.iter(|| black_box(part_1(black_box(INPUT))));
+    }
+
+    #[bench]
+    fn bench_part_2(b: &mut Bencher) {
+        b.iter(|| black_box(part_2(black_box(INPUT))));
     }
 }

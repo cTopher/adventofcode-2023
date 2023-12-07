@@ -1,6 +1,7 @@
-use itertools::Itertools;
 use std::rc::Rc;
 use std::str::FromStr;
+
+use itertools::Itertools;
 
 pub struct Schematic {
     values: Vec<Vec<Value>>,
