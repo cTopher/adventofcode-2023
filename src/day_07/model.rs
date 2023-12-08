@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use std::str::FromStr;
+use std::cmp::Reverse;
 
 pub type Bid = u32;
 
@@ -22,6 +22,7 @@ enum Type {
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Hash)]
 enum Card {
+    Joker,
     Number(u8),
     T,
     J,
@@ -39,49 +40,45 @@ impl Hand {
     }
 
     fn type_for_cards(cards: [Card; 5]) -> Type {
-        let counts: Vec<_> = cards.iter().counts().values().copied().collect();
-        let pairs = counts.iter().filter(|&&count| count == 2).count();
-        if counts.contains(&5) {
-            Type::FiveOfAKind
-        } else if counts.contains(&4) {
-            Type::FourOfAKind
-        } else if pairs == 1 && counts.contains(&3) {
-            Type::FullHouse
-        } else if counts.contains(&3) {
-            Type::ThreeOfAKind
-        } else if pairs == 2 {
-            Type::TwoPair
-        } else if pairs == 1 {
-            Type::OnePair
-        } else {
-            Type::HighCard
+        let mut counts = cards.iter().counts();
+        let jokers = counts.remove(&Card::Joker).unwrap_or(0);
+        let mut counts: Vec<_> = counts.into_values().collect();
+        counts.sort_unstable_by_key(|count| Reverse(*count));
+        match (
+            counts.first().copied().unwrap_or(0) + jokers,
+            counts.get(1).copied().unwrap_or(0),
+        ) {
+            (5, _) => Type::FiveOfAKind,
+            (4, _) => Type::FourOfAKind,
+            (3, 2) => Type::FullHouse,
+            (3, _) => Type::ThreeOfAKind,
+            (2, 2) => Type::TwoPair,
+            (2, _) => Type::OnePair,
+            _ => Type::HighCard,
         }
+    }
+
+    pub fn from_str(s: &str, has_jokers: bool) -> Self {
+        let cards = s
+            .chars()
+            .map(|c| Card::from_char(c, has_jokers))
+            .collect_vec()
+            .try_into()
+            .unwrap();
+        Self::new(cards)
     }
 }
 
 impl Card {
-    fn from_char(c: char) -> Self {
+    fn from_char(c: char, has_jokers: bool) -> Self {
         match c {
             'A' => Self::A,
             'K' => Self::K,
             'Q' => Self::Q,
+            'J' if has_jokers => Self::Joker,
             'J' => Self::J,
             'T' => Self::T,
             _ => Self::Number(u8::try_from(c.to_digit(10).unwrap()).unwrap()),
         }
-    }
-}
-
-impl FromStr for Hand {
-    type Err = !;
-
-    fn from_str(s: &str) -> Result<Self, !> {
-        let cards = s
-            .chars()
-            .map(Card::from_char)
-            .collect_vec()
-            .try_into()
-            .unwrap();
-        Ok(Self::new(cards))
     }
 }

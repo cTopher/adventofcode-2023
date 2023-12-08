@@ -2,19 +2,11 @@ use model::{Bid, Hand};
 
 mod model;
 
-fn parse_input(input: &str) -> Vec<(Hand, Bid)> {
-    input
+fn winnings(input: &str, has_jokers: bool) -> u32 {
+    let mut hands: Vec<_> = input
         .lines()
-        .map(|line| {
-            let (hand, bid) = line.split_once(' ').unwrap();
-            (hand.parse().unwrap(), bid.parse().unwrap())
-        })
-        .collect()
-}
-
-#[must_use]
-pub fn part_1(input: &str) -> u32 {
-    let mut hands = parse_input(input);
+        .map(|line| parse_line(line, has_jokers))
+        .collect();
     hands.sort_by_key(|(hand, _)| *hand);
     hands
         .into_iter()
@@ -26,9 +18,19 @@ pub fn part_1(input: &str) -> u32 {
         .sum()
 }
 
+fn parse_line(line: &str, has_jokers: bool) -> (Hand, Bid) {
+    let (hand, bid) = line.split_once(' ').unwrap();
+    (Hand::from_str(hand, has_jokers), bid.parse().unwrap())
+}
+
+#[must_use]
+pub fn part_1(input: &str) -> u32 {
+    winnings(input, false)
+}
+
 #[must_use]
 pub fn part_2(input: &str) -> u32 {
-    0
+    winnings(input, true)
 }
 
 #[cfg(test)]
@@ -49,17 +51,17 @@ mod tests {
 
     #[test]
     fn answer_1() {
-        assert_eq!(0, part_1(INPUT));
+        assert_eq!(248_559_379, part_1(INPUT));
     }
 
     #[test]
     fn example_2() {
-        assert_eq!(0, part_2(EXAMPLE));
+        assert_eq!(5905, part_2(EXAMPLE));
     }
 
     #[test]
     fn answer_2() {
-        assert_eq!(0, part_2(INPUT));
+        assert_eq!(249_631_254, part_2(INPUT));
     }
 
     #[bench]
