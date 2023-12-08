@@ -15,7 +15,6 @@ enum Value {
     Period,
 }
 
-// I hate everything about all this code.
 impl Schematic {
     pub fn part_numbers(&self) -> impl Iterator<Item = u32> + '_ {
         self.values

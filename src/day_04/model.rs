@@ -35,8 +35,5 @@ impl FromStr for Scratchcard {
 }
 
 fn parse_numbers(s: &str) -> Vec<u32> {
-    s.split(' ')
-        .filter(|n| !n.is_empty())
-        .map(|n| n.parse().unwrap())
-        .collect()
+    s.split_whitespace().map(|n| n.parse().unwrap()).collect()
 }
