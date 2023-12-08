@@ -1,19 +1,30 @@
 use std::str::FromStr;
 
-use model::Almanac;
+use model::{Almanac, Range};
 
 mod model;
 
 #[must_use]
-pub fn part_1(input: &str) -> u32 {
+pub fn part_1(input: &str) -> u64 {
     let Ok(almanac) = Almanac::from_str(input);
-    almanac.seed_locations().min().unwrap()
+    almanac
+        .seeds
+        .iter()
+        .map(|&seed| almanac.seed_to_location(seed))
+        .min()
+        .unwrap()
 }
 
 #[must_use]
-pub fn part_2(input: &str) -> u32 {
+pub fn part_2(input: &str) -> u64 {
     let Ok(almanac) = Almanac::from_str(input);
-    almanac.seed_locations().min().unwrap()
+    almanac
+        .seeds
+        .chunks(2)
+        .map(|chunk| Range::new(chunk[0], chunk[0] + chunk[1]))
+        .map(|seeds| almanac.closest_location_for_seeds(seeds))
+        .min()
+        .unwrap()
 }
 
 #[cfg(test)]
@@ -34,17 +45,17 @@ mod tests {
 
     #[test]
     fn answer_1() {
-        assert_eq!(0, part_1(INPUT));
+        assert_eq!(662_197_086, part_1(INPUT));
     }
 
     #[test]
     fn example_2() {
-        assert_eq!(0, part_2(EXAMPLE));
+        assert_eq!(46, part_2(EXAMPLE));
     }
 
     #[test]
     fn answer_2() {
-        assert_eq!(0, part_2(INPUT));
+        assert_eq!(52_510_809, part_2(INPUT));
     }
 
     #[bench]
