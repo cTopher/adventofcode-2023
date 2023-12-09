@@ -1,5 +1,6 @@
-use itertools::Itertools;
 use std::cmp::Reverse;
+
+use itertools::Itertools;
 
 pub type Bid = u32;
 
