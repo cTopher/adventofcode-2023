@@ -1,5 +1,7 @@
 use std::str::FromStr;
 
+use itertools::Itertools;
+
 use model::Map;
 
 mod math;
@@ -8,14 +10,20 @@ mod model;
 #[must_use]
 pub fn part_1(input: &str) -> usize {
     let Ok(map) = Map::from_str(input);
-    1 + map.get("AAA").take_while(|&node| node != "ZZZ").count()
+    map.get("AAA")
+        .take_while_inclusive(|&node| node != "ZZZ")
+        .count()
 }
 
 #[must_use]
 pub fn part_2(input: &str) -> usize {
     let Ok(map) = Map::from_str(input);
     map.ghosts()
-        .map(|ghost| 1 + ghost.take_while(|node| !node.ends_with('Z')).count())
+        .map(|ghost| {
+            ghost
+                .take_while_inclusive(|node| !node.ends_with('Z'))
+                .count()
+        })
         .reduce(math::lcm)
         .unwrap()
 }
