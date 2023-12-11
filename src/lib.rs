@@ -1,4 +1,4 @@
-#![feature(never_type, exhaustive_patterns, test)]
+#![feature(never_type, exhaustive_patterns, test, let_chains)]
 
 pub mod day_01;
 pub mod day_02;
@@ -9,3 +9,4 @@ pub mod day_06;
 pub mod day_07;
 pub mod day_08;
 pub mod day_09;
+pub mod day_10;
