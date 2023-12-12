@@ -4,9 +4,9 @@ use model::Sketch;
 use std::str::FromStr;
 
 #[must_use]
-pub fn part_1(input: &str) -> u32 {
+pub fn part_1(input: &str) -> usize {
     let Ok(sketch) = Sketch::from_str(input);
-    sketch.max_distance_from_start()
+    sketch.pipe().count().div_ceil(2)
 }
 
 #[must_use]

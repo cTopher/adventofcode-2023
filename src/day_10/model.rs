@@ -1,4 +1,3 @@
-use itertools::Itertools;
 use std::str::FromStr;
 
 const DIRECTIONS: [Direction; 4] = [
@@ -28,10 +27,11 @@ enum Direction {
     West,
 }
 
-struct PipeIterator<'a> {
+pub struct PipeIterator<'a> {
     sketch: &'a Sketch,
     position: (usize, usize),
     direction: Direction,
+    started: bool,
 }
 
 impl Sketch {
@@ -40,34 +40,25 @@ impl Sketch {
         self.tiles.get(row).and_then(|row| row.get(column))
     }
 
-    pub fn max_distance_from_start(&self) -> u32 {
+    pub fn pipe(&self) -> PipeIterator<'_> {
         let start = self.start_position();
-        let (mut a, mut b) = DIRECTIONS
+        let direction = DIRECTIONS
             .iter()
-            .filter_map(|&direction| {
+            .find_map(|&direction| {
                 if let Tile::Pipe { directions } = self.get(direction.apply(start)?)?
                     && directions.contains(&direction.opposite())
                 {
-                    Some(PipeIterator {
-                        sketch: self,
-                        position: start,
-                        direction,
-                    })
+                    Some(direction)
                 } else {
                     None
                 }
             })
-            .collect_tuple()
             .unwrap();
-        let mut distance = 0;
-        loop {
-            if a.next().unwrap() == b.position {
-                return distance;
-            }
-            distance += 1;
-            if b.next().unwrap() == a.position {
-                return distance;
-            }
+        PipeIterator {
+            sketch: self,
+            position: start,
+            direction,
+            started: false,
         }
     }
 
@@ -141,15 +132,21 @@ impl Iterator for PipeIterator<'_> {
     type Item = (usize, usize);
 
     fn next(&mut self) -> Option<Self::Item> {
+        if !self.started {
+            self.started = true;
+            return Some(self.position);
+        }
         self.position = self.direction.apply(self.position)?;
-        self.direction = match self.sketch.get(self.position)? {
-            Tile::Pipe { directions } => directions
-                .iter()
-                .copied()
-                .find(|&direction| direction != self.direction.opposite())?,
-            _ => panic!("Invalid pipe"),
-        };
-        Some(self.position)
+        match self.sketch.get(self.position)? {
+            Tile::Pipe { directions } => {
+                self.direction = directions
+                    .iter()
+                    .copied()
+                    .find(|&direction| direction != self.direction.opposite())?;
+                Some(self.position)
+            }
+            _ => None,
+        }
     }
 }
 
