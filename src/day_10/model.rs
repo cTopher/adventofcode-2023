@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-const DIRECTIONS: [Direction; 4] = [
+pub const DIRECTIONS: [Direction; 4] = [
     Direction::North,
     Direction::East,
     Direction::South,
@@ -20,7 +20,7 @@ enum Tile {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Direction {
+pub enum Direction {
     North,
     East,
     South,
@@ -38,6 +38,14 @@ impl Sketch {
     fn get(&self, position: (usize, usize)) -> Option<&Tile> {
         let (row, column) = position;
         self.tiles.get(row).and_then(|row| row.get(column))
+    }
+
+    pub fn width(&self) -> usize {
+        self.tiles[0].len()
+    }
+
+    pub fn height(&self) -> usize {
+        self.tiles.len()
     }
 
     pub fn pipe(&self) -> PipeIterator<'_> {
@@ -108,7 +116,7 @@ impl From<char> for Tile {
 }
 
 impl Direction {
-    fn apply(self, position: (usize, usize)) -> Option<(usize, usize)> {
+    pub fn apply(self, position: (usize, usize)) -> Option<(usize, usize)> {
         let (row, column) = position;
         Some(match self {
             Self::North => (row.checked_sub(1)?, column),
@@ -125,6 +133,12 @@ impl Direction {
             Self::South => Self::North,
             Self::West => Self::East,
         }
+    }
+}
+
+impl PipeIterator<'_> {
+    pub fn direction(&self) -> Direction {
+        self.direction
     }
 }
 
