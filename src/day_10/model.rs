@@ -137,7 +137,7 @@ impl Direction {
 }
 
 impl PipeIterator<'_> {
-    pub fn direction(&self) -> Direction {
+    pub const fn direction(&self) -> Direction {
         self.direction
     }
 }
