@@ -1,4 +1,3 @@
-use std::iter::zip;
 use std::str::FromStr;
 
 pub struct Image {
@@ -11,55 +10,47 @@ enum Pixel {
     Galaxy,
 }
 
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
-struct Galaxy {
-    x: u64,
-    y: u64,
-}
-
 impl Image {
-    pub fn galaxy_distances(&self, expansion: u64) -> u64 {
-        self.galaxies(expansion)
-            .iter()
-            .enumerate()
-            .map(|(i, galaxy)| {
-                self.galaxies(expansion)
-                    .iter()
-                    .skip(i + 1)
-                    .map(|other_galaxy| galaxy.distance(other_galaxy))
-                    .sum::<u64>()
-            })
-            .sum()
+    pub fn galaxy_distances(&self, expansion: u32) -> u64 {
+        distance_sums(self.galaxy_x(expansion)) + distance_sums(self.galaxy_y(expansion))
     }
 
-    fn galaxies(&self, expansion: u64) -> Vec<Galaxy> {
-        let expended_cols: Vec<_> = (0..self.width())
-            .map(|column| {
-                self.pixels
-                    .iter()
-                    .all(|row| row[column] == Pixel::EmptySpace)
-            })
-            .collect();
-        let mut galaxies = Vec::new();
+    fn galaxy_x(&self, expansion: u32) -> Vec<u32> {
+        let mut result = Vec::new();
         let mut x = 0;
-        for row in &self.pixels {
-            if row.iter().all(|&pixel| pixel == Pixel::EmptySpace) {
+        for column in 0..self.width() {
+            let amount = self
+                .pixels
+                .iter()
+                .filter(|row| row[column] == Pixel::Galaxy)
+                .count();
+            if amount == 0 {
                 x += expansion;
-                continue;
-            }
-            let mut y = 0;
-            for (&pixel, &expanded_column) in zip(row, &expended_cols) {
-                if expanded_column {
-                    y += expansion - 1;
+            } else {
+                for _ in 0..amount {
+                    result.push(x);
                 }
-                if pixel == Pixel::Galaxy {
-                    galaxies.push(Galaxy { x, y });
+                x += 1;
+            }
+        }
+        result
+    }
+
+    fn galaxy_y(&self, expansion: u32) -> Vec<u32> {
+        let mut result = Vec::new();
+        let mut y = 0;
+        for row in &self.pixels {
+            let amount = row.iter().filter(|&&pixel| pixel == Pixel::Galaxy).count();
+            if amount == 0 {
+                y += expansion;
+            } else {
+                for _ in 0..amount {
+                    result.push(y);
                 }
                 y += 1;
             }
-            x += 1;
         }
-        galaxies
+        result
     }
 
     fn width(&self) -> usize {
@@ -67,10 +58,14 @@ impl Image {
     }
 }
 
-impl Galaxy {
-    const fn distance(&self, other: &Self) -> u64 {
-        self.x.abs_diff(other.x) + self.y.abs_diff(other.y)
-    }
+fn distance_sums(positions: Vec<u32>) -> u64 {
+    let z = i64::try_from(positions.len() - 1).unwrap();
+    let sum: i64 = positions
+        .into_iter()
+        .enumerate()
+        .map(|(i, x)| i64::from(x) * (2 * i64::try_from(i).unwrap() - z))
+        .sum();
+    u64::try_from(sum).unwrap()
 }
 
 impl From<char> for Pixel {
