@@ -1,19 +1,25 @@
+use std::str::FromStr;
+
 mod mirror;
 
-fn parse_input(input: &str) -> impl Iterator<Item = mirror::Valley> + '_ {
-    input.split("\n\n").map(|p| p.parse().unwrap())
-}
-
-#[must_use]
-pub fn part_1(input: &str) -> usize {
-    parse_input(input)
-        .map(|valley| valley.reflection_note())
+fn sum_notes(input: &str, smudged: bool) -> usize {
+    input
+        .split("\n\n")
+        .map(|p| {
+            let Ok(valley) = mirror::Valley::from_str(p);
+            valley.reflection_note(smudged)
+        })
         .sum()
 }
 
 #[must_use]
+pub fn part_1(input: &str) -> usize {
+    sum_notes(input, false)
+}
+
+#[must_use]
 pub fn part_2(input: &str) -> usize {
-    0
+    sum_notes(input, true)
 }
 
 #[cfg(test)]
@@ -39,12 +45,12 @@ mod tests {
 
     #[test]
     fn example_2() {
-        assert_eq!(0, part_2(EXAMPLE));
+        assert_eq!(400, part_2(EXAMPLE));
     }
 
     #[test]
     fn answer_2() {
-        assert_eq!(0, part_2(INPUT));
+        assert_eq!(37453, part_2(INPUT));
     }
 
     #[bench]
