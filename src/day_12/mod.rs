@@ -58,7 +58,7 @@ mod tests {
 
     #[test]
     fn answer_2() {
-        assert_eq!(548241300348335, part_2(INPUT));
+        assert_eq!(548_241_300_348_335, part_2(INPUT));
     }
 
     #[bench]
