@@ -64,6 +64,7 @@ mod tests {
     }
 
     #[bench]
+    // 22 ms/iter (+/- 1)
     fn bench_part_2(b: &mut Bencher) {
         b.iter(|| black_box(part_2(black_box(INPUT))));
     }
