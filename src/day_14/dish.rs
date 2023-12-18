@@ -2,6 +2,7 @@ use std::fmt;
 use std::fmt::{Formatter, Write};
 use std::str::FromStr;
 
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Platform {
     rocks: Vec<Vec<Option<Rock>>>,
 }
@@ -12,10 +13,17 @@ enum Rock {
     CubeShaped,
 }
 
+//noinspection DuplicatedCode
 impl Platform {
+    pub fn spin_cycle(&mut self) {
+        self.tilt_north();
+        self.tilt_west();
+        self.tilt_south();
+        self.tilt_east();
+    }
+
     pub fn tilt_north(&mut self) {
-        let m = self.rocks.len();
-        let n = self.rocks[0].len();
+        let (m, n) = self.size();
         for i in 1..m {
             for j in 0..n {
                 if self.rocks[i][j] == Some(Rock::Rounded) {
@@ -26,6 +34,58 @@ impl Platform {
                     {
                         self.rocks[i][j] = None;
                         self.rocks[k][j] = Some(Rock::Rounded);
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn tilt_west(&mut self) {
+        let (m, n) = self.size();
+        for i in 0..m {
+            for j in 1..n {
+                if self.rocks[i][j] == Some(Rock::Rounded) {
+                    if let Some(k) = (0..j)
+                        .rev()
+                        .take_while(|&k| self.rocks[i][k].is_none())
+                        .last()
+                    {
+                        self.rocks[i][j] = None;
+                        self.rocks[i][k] = Some(Rock::Rounded);
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn tilt_south(&mut self) {
+        let (m, n) = self.size();
+        for i in (0..m - 1).rev() {
+            for j in 0..n {
+                if self.rocks[i][j] == Some(Rock::Rounded) {
+                    if let Some(k) = (i + 1..m)
+                        .take_while(|&k| self.rocks[k][j].is_none())
+                        .last()
+                    {
+                        self.rocks[i][j] = None;
+                        self.rocks[k][j] = Some(Rock::Rounded);
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn tilt_east(&mut self) {
+        let (m, n) = self.size();
+        for i in 0..m {
+            for j in (0..n - 1).rev() {
+                if self.rocks[i][j] == Some(Rock::Rounded) {
+                    if let Some(k) = (j + 1..n)
+                        .take_while(|&k| self.rocks[i][k].is_none())
+                        .last()
+                    {
+                        self.rocks[i][j] = None;
+                        self.rocks[i][k] = Some(Rock::Rounded);
                     }
                 }
             }
@@ -45,6 +105,10 @@ impl Platform {
                 (index + 1) * rounded_rocks
             })
             .sum()
+    }
+
+    fn size(&self) -> (usize, usize) {
+        (self.rocks.len(), self.rocks[0].len())
     }
 }
 

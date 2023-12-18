@@ -2,6 +2,8 @@ use std::str::FromStr;
 
 mod dish;
 
+const CYCLES: usize = 1_000_000_000;
+
 #[must_use]
 pub fn part_1(input: &str) -> usize {
     let Ok(mut platform) = dish::Platform::from_str(input);
@@ -11,7 +13,18 @@ pub fn part_1(input: &str) -> usize {
 
 #[must_use]
 pub fn part_2(input: &str) -> usize {
-    0
+    let Ok(mut platform) = dish::Platform::from_str(input);
+    let mut states = vec![platform.clone()];
+    for cycle in 1..=CYCLES {
+        platform.spin_cycle();
+        if let Some(position) = states.iter().position(|state| state == &platform) {
+            let repetition = &states[position..];
+            platform = repetition[(CYCLES - cycle) % repetition.len()].clone();
+            break;
+        }
+        states.push(platform.clone());
+    }
+    platform.north_support_beam_load()
 }
 
 #[cfg(test)]
@@ -37,12 +50,12 @@ mod tests {
 
     #[test]
     fn example_2() {
-        assert_eq!(0, part_2(EXAMPLE));
+        assert_eq!(64, part_2(EXAMPLE));
     }
 
     #[test]
     fn answer_2() {
-        assert_eq!(0, part_2(INPUT));
+        assert_eq!(89845, part_2(INPUT));
     }
 
     #[bench]
