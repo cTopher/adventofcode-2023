@@ -1,7 +1,6 @@
 use itertools::Itertools;
-use std::assert_matches::assert_matches;
-use std::collections::HashMap;
-use std::fmt::Debug;
+use std::assert_matches::debug_assert_matches;
+use std::fmt::{Debug, Write};
 use std::str::FromStr;
 use std::{fmt, iter};
 
@@ -11,25 +10,27 @@ pub struct Row {
     groups: Vec<usize>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Spring {
     Operational,
     Damaged,
     Unknown,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct RowSlice<'a> {
-    springs: &'a [Spring],
-    groups: &'a [usize],
+#[derive(Debug, Clone, Copy)]
+struct RowSlice<'a> {
+    row: &'a Row,
+    spring_offset: usize,
+    group_offset: usize,
 }
 
 pub struct Solver<'a> {
-    cache: HashMap<RowSlice<'a>, u64>,
+    row: &'a Row,
+    cache: Vec<Option<u64>>,
 }
 
 impl Row {
-    pub fn simplify(&mut self) {
+    fn simplify(&mut self) {
         while self.springs.last().copied() == Some(Spring::Operational) {
             self.springs.pop();
         }
@@ -47,9 +48,9 @@ impl Row {
             .collect();
     }
 
-    pub fn unfold(self) -> Self {
-        let spring_len = 5 * self.springs.len() + 4;
-        let group_len = 5 * self.groups.len();
+    pub fn unfold(self, times: usize) -> Self {
+        let spring_len = times * self.springs.len() + times - 1;
+        let group_len = times * self.groups.len();
         let springs = self
             .springs
             .into_iter()
@@ -61,10 +62,11 @@ impl Row {
         Self { springs, groups }
     }
 
-    pub fn as_slice(&self) -> RowSlice<'_> {
+    fn as_slice(&self) -> RowSlice<'_> {
         RowSlice {
-            springs: &self.springs,
-            groups: &self.groups,
+            row: self,
+            spring_offset: 0,
+            group_offset: 0,
         }
         .simplify()
         .unwrap()
@@ -72,103 +74,122 @@ impl Row {
 }
 
 impl<'a> Solver<'a> {
-    pub fn new() -> Self {
-        let mut cache = HashMap::new();
-        cache.insert(RowSlice::EMPTY, 1);
-        Self { cache }
+    pub fn new(row: &'a mut Row) -> Self {
+        row.simplify();
+        let size = (row.springs.len() + 1) * (row.groups.len() + 1);
+        let mut cache = vec![None; size];
+        cache[size - 1] = Some(1);
+        Self { row, cache }
     }
 
-    pub fn arrangements(&mut self, row: RowSlice<'a>) -> u64 {
-        if let Some(&arrangements) = self.cache.get(&row) {
+    pub fn arrangements(&mut self) -> u64 {
+        self.arrangements_for_slice(self.row.as_slice())
+    }
+
+    fn arrangements_for_slice(&mut self, row: RowSlice) -> u64 {
+        if let Some(arrangements) = self.cache[row.index()] {
             return arrangements;
         }
         let arrangements = self.calc_arrangements(row);
-        self.cache.insert(row, arrangements);
+        self.cache[row.index()] = Some(arrangements);
         arrangements
     }
 
-    fn calc_arrangements(&mut self, row: RowSlice<'a>) -> u64 {
+    fn calc_arrangements(&mut self, row: RowSlice) -> u64 {
         [row.with_operational(), row.with_damaged()]
             .into_iter()
             .flatten()
-            .map(|row| self.arrangements(row))
+            .map(|row| self.arrangements_for_slice(row))
             .sum()
     }
 }
 
-impl RowSlice<'static> {
-    const EMPTY: Self = Self {
-        springs: &[],
-        groups: &[],
-    };
-}
-
 impl<'a> RowSlice<'a> {
+    fn index(&self) -> usize {
+        self.spring_offset * (self.row.groups.len() + 1) + self.group_offset
+    }
+
     fn simplify(mut self) -> Option<Self> {
         loop {
-            if self.springs.first().copied() == Some(Spring::Operational) {
-                self.springs = &self.springs[1..];
+            if self.first_spring() == Some(Spring::Operational) {
+                self.spring_offset += 1;
             }
-            if self.springs.first().copied() == Some(Spring::Damaged) {
+            if self.first_spring() == Some(Spring::Damaged) {
                 self = self.take_next_group()?;
             } else {
                 break;
             }
         }
-        if self.springs.is_empty() && !self.groups.is_empty() {
+        if self.springs_is_empty() && !self.groups_is_empty() {
             return None;
         }
-        assert_matches!(self.springs.first(), None | Some(Spring::Unknown));
+        debug_assert_matches!(self.first_spring(), None | Some(Spring::Unknown));
         Some(self)
     }
 
     fn take_next_group(mut self) -> Option<Self> {
-        let group = *self.groups.first()?;
-        self.groups = &self.groups[1..];
+        let group = self.first_group()?;
+        self.group_offset += 1;
         for _ in 0..group {
-            if matches!(self.springs.first(), None | Some(Spring::Operational)) {
+            if matches!(self.first_spring(), None | Some(Spring::Operational)) {
                 return None;
             }
-            self.springs = &self.springs[1..];
+            self.spring_offset += 1;
         }
-        match self.springs.first() {
+        match self.first_spring() {
             Some(Spring::Operational | Spring::Unknown) => {
-                self.springs = &self.springs[1..];
+                self.spring_offset += 1;
                 Some(self)
             }
             Some(Spring::Damaged) => None,
-            None if !self.groups.is_empty() => None,
+            None if !self.groups_is_empty() => None,
             None => Some(self),
         }
     }
 
     fn with_damaged(self) -> Option<Self> {
-        assert_eq!(self.springs.first(), Some(&Spring::Unknown));
+        debug_assert_eq!(self.first_spring(), Some(Spring::Unknown));
         self.take_next_group()?.simplify()
     }
 
     fn with_operational(mut self) -> Option<Self> {
-        assert_eq!(self.springs.first(), Some(&Spring::Unknown));
-        self.springs = &self.springs[1..];
+        debug_assert_eq!(self.first_spring(), Some(Spring::Unknown));
+        self.spring_offset += 1;
         self.simplify()
+    }
+
+    fn first_spring(&self) -> Option<Spring> {
+        self.row.springs.get(self.spring_offset).copied()
+    }
+
+    fn first_group(&self) -> Option<usize> {
+        self.row.groups.get(self.group_offset).copied()
+    }
+
+    fn springs_is_empty(&self) -> bool {
+        debug_assert!(self.spring_offset <= self.row.springs.len());
+        self.spring_offset >= self.row.springs.len()
+    }
+
+    fn groups_is_empty(&self) -> bool {
+        debug_assert!(self.group_offset <= self.row.groups.len());
+        self.group_offset >= self.row.groups.len()
     }
 }
 
 impl fmt::Display for RowSlice<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if let Some(spring) = self.springs.first() {
+        if let Some(spring) = self.first_spring() {
+            fmt::Display::fmt(&spring, f)?;
+        }
+        for spring in self.row.springs.iter().skip(self.spring_offset + 1) {
             fmt::Display::fmt(spring, f)?;
         }
-        for spring in self.springs.iter().skip(1) {
-            fmt::Display::fmt(spring, f)?;
+        if let Some(group) = self.first_group() {
+            write!(f, " {group}")?;
         }
-        if let Some(group) = self.groups.first() {
-            fmt::Display::fmt(&' ', f)?;
-            fmt::Display::fmt(group, f)?;
-        }
-        for group in self.groups.iter().skip(1) {
-            fmt::Display::fmt(&',', f)?;
-            fmt::Display::fmt(group, f)?;
+        for group in self.row.groups.iter().skip(self.group_offset + 1) {
+            write!(f, ",{group}")?;
         }
         Ok(())
     }
@@ -182,7 +203,7 @@ impl Spring {
 
 impl fmt::Display for Spring {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(&char::from(*self), f)
+        f.write_char((*self).into())
     }
 }
 

@@ -3,8 +3,7 @@ use std::str::FromStr;
 mod spring;
 
 fn solve(input: &str, unfold: bool) -> u64 {
-    let mut solver = spring::Solver::new();
-    let rows: Vec<spring::Row> = input
+    input
         .lines()
         .map(|l| {
             let Ok(mut row) = spring::Row::from_str(l);
@@ -12,11 +11,9 @@ fn solve(input: &str, unfold: bool) -> u64 {
                 row = row.unfold();
             }
             row.simplify();
-            row
+            let mut solver = spring::Solver::new(&row);
+            solver.arrangements(&row)
         })
-        .collect();
-    rows.iter()
-        .map(|row| solver.arrangements(row.as_slice()))
         .sum()
 }
 
@@ -67,6 +64,8 @@ mod tests {
     }
 
     #[bench]
+    // 7 ms/iter (+/- 0)
+    // if unfold=15 95884780 ns/iter (+/- 3200611)
     fn bench_part_2(b: &mut Bencher) {
         b.iter(|| black_box(part_2(black_box(INPUT))));
     }
