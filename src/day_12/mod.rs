@@ -8,11 +8,10 @@ fn solve(input: &str, unfold: bool) -> u64 {
         .map(|l| {
             let Ok(mut row) = spring::Row::from_str(l);
             if unfold {
-                row = row.unfold();
+                row = row.unfold(5);
             }
-            row.simplify();
-            let mut solver = spring::Solver::new(&row);
-            solver.arrangements(&row)
+            let mut solver = spring::Solver::new(&mut row);
+            solver.arrangements()
         })
         .sum()
 }
@@ -65,7 +64,7 @@ mod tests {
 
     #[bench]
     // 7 ms/iter (+/- 0)
-    // if unfold=15 95884780 ns/iter (+/- 3200611)
+    // if unfold=15 35 ms/iter (+/- 1)
     fn bench_part_2(b: &mut Bencher) {
         b.iter(|| black_box(part_2(black_box(INPUT))));
     }
