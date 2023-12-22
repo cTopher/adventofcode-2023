@@ -3,7 +3,7 @@ use std::ops::Deref;
 use std::str::FromStr;
 
 #[derive(Debug)]
-pub struct Grid<const N: usize>(Matrix<N, Tile>);
+pub struct Grid<const N: usize>(Matrix<N, N, Tile>);
 
 #[derive(Debug, Copy, Clone, Default)]
 pub enum Tile {
@@ -19,12 +19,12 @@ pub enum Tile {
 pub struct Beam<'a, const N: usize> {
     grid: &'a Grid<N>,
     energized: u32,
-    visited: Matrix<N, DirectionSet>,
-    sub_beams: Vec<(Position<N>, Direction)>,
+    visited: Matrix<N, N, DirectionSet>,
+    sub_beams: Vec<(Position<N, N>, Direction)>,
 }
 
 impl<'a, const N: usize> Beam<'a, N> {
-    pub fn new(grid: &'a Grid<N>, position: Position<N>, direction: Direction) -> Self {
+    pub fn new(grid: &'a Grid<N>, position: Position<N, N>, direction: Direction) -> Self {
         Self {
             grid,
             energized: 0,
@@ -40,7 +40,7 @@ impl<'a, const N: usize> Beam<'a, N> {
         self.energized
     }
 
-    fn trace_section(&mut self, mut position: Position<N>, mut direction: Direction) {
+    fn trace_section(&mut self, mut position: Position<N, N>, mut direction: Direction) {
         loop {
             let visited = &mut self.visited[position];
             if visited.is_empty() {
@@ -101,7 +101,7 @@ impl From<char> for Tile {
 }
 
 impl<const N: usize> Deref for Grid<N> {
-    type Target = Matrix<N, Tile>;
+    type Target = Matrix<N, N, Tile>;
 
     fn deref(&self) -> &Self::Target {
         &self.0

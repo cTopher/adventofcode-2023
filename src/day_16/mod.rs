@@ -17,14 +17,14 @@ pub fn part_2<const N: usize>(input: &str) -> u32 {
     let Ok(grid) = Grid::<N>::from_str(input);
     (0..N)
         .flat_map(|i| {
-            vec![
-                Beam::new(&grid, Position::new(0, i), Direction::Down),
-                Beam::new(&grid, Position::new(N - 1, i), Direction::Up),
-                Beam::new(&grid, Position::new(i, 0), Direction::Right),
-                Beam::new(&grid, Position::new(i, N - 1), Direction::Left),
+            [
+                (Position::new(0, i), Direction::Down),
+                (Position::new(N - 1, i), Direction::Up),
+                (Position::new(i, 0), Direction::Right),
+                (Position::new(i, N - 1), Direction::Left),
             ]
         })
-        .map(Beam::energy)
+        .map(|(position, direction)| Beam::new(&grid, position, direction).energy())
         .max()
         .unwrap()
 }
