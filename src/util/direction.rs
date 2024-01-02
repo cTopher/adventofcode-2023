@@ -1,5 +1,6 @@
 use crate::util::Orientation;
 use std::mem;
+use std::str::FromStr;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Direction {
@@ -85,5 +86,19 @@ impl DirectionSet {
 
     pub const fn is_empty(self) -> bool {
         self.map.is_empty()
+    }
+}
+
+impl FromStr for Direction {
+    type Err = !;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "U" => Ok(Self::Up),
+            "D" => Ok(Self::Down),
+            "L" => Ok(Self::Left),
+            "R" => Ok(Self::Right),
+            _ => panic!("Invalid direction: {s}"),
+        }
     }
 }
