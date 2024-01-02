@@ -11,10 +11,7 @@ pub fn part_1(input: &str) -> u64 {
 
 #[must_use]
 pub fn part_2(input: &str) -> u64 {
-    let steps = input
-        .lines()
-        .map(|line| parse_with_color_swap(line))
-        .collect();
+    let steps = input.lines().map(parse_with_color_swap).collect();
     let dig_plan = lagoon::DigPlan { steps };
     dig_plan.volume()
 }
