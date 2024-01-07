@@ -57,16 +57,11 @@ mod tests {
 
     #[test]
     fn answer_2() {
-        assert_eq!(0, part_2::<110>(INPUT));
+        assert_eq!(7716, part_2::<110>(INPUT));
     }
 
     #[bench]
-    fn bench_part_1(b: &mut Bencher) {
+    fn bench(b: &mut Bencher) {
         b.iter(|| black_box(part_1::<110>(black_box(INPUT))));
-    }
-
-    #[bench]
-    fn bench_part_2(b: &mut Bencher) {
-        b.iter(|| black_box(part_2::<110>(black_box(INPUT))));
     }
 }

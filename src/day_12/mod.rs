@@ -58,14 +58,7 @@ mod tests {
     }
 
     #[bench]
-    fn bench_part_1(b: &mut Bencher) {
-        b.iter(|| black_box(part_1(black_box(INPUT))));
-    }
-
-    #[bench]
-    // 7 ms/iter (+/- 0)
-    // if unfold=15 35 ms/iter (+/- 1)
-    fn bench_part_2(b: &mut Bencher) {
+    fn bench(b: &mut Bencher) {
         b.iter(|| black_box(part_2(black_box(INPUT))));
     }
 }
