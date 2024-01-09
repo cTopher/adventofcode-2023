@@ -5,15 +5,15 @@ mod dish;
 const CYCLES: usize = 1_000_000_000;
 
 #[must_use]
-pub fn part_1(input: &str) -> usize {
-    let Ok(mut platform) = dish::Platform::from_str(input);
+pub fn part_1<const M: usize, const N: usize>(input: &str) -> usize {
+    let Ok(mut platform) = dish::Platform::<N, N>::from_str(input);
     platform.tilt_north();
     platform.north_support_beam_load()
 }
 
 #[must_use]
-pub fn part_2(input: &str) -> usize {
-    let Ok(mut platform) = dish::Platform::from_str(input);
+pub fn part_2<const M: usize, const N: usize>(input: &str) -> usize {
+    let Ok(mut platform) = dish::Platform::<N, N>::from_str(input);
     let mut states = vec![platform.clone()];
     for cycle in 1..=CYCLES {
         platform.spin_cycle();
@@ -40,26 +40,26 @@ mod tests {
 
     #[test]
     fn example_1() {
-        assert_eq!(136, part_1(EXAMPLE));
+        assert_eq!(136, part_1::<10, 10>(EXAMPLE));
     }
 
     #[test]
     fn answer_1() {
-        assert_eq!(110_565, part_1(INPUT));
+        assert_eq!(110_565, part_1::<100, 100>(INPUT));
     }
 
     #[test]
     fn example_2() {
-        assert_eq!(64, part_2(EXAMPLE));
+        assert_eq!(64, part_2::<10, 10>(EXAMPLE));
     }
 
     #[test]
     fn answer_2() {
-        assert_eq!(89845, part_2(INPUT));
+        assert_eq!(89845, part_2::<100, 100>(INPUT));
     }
 
     #[bench]
     fn bench(b: &mut Bencher) {
-        b.iter(|| black_box(part_2(black_box(INPUT))));
+        b.iter(|| black_box(part_2::<100, 100>(black_box(INPUT))));
     }
 }
