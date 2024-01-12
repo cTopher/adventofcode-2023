@@ -1,17 +1,28 @@
-use model::Input;
 use std::str::FromStr;
 
-mod model;
+pub(crate) use part::*;
+pub(crate) use workflow::*;
+
+mod part;
+mod workflow;
 
 #[must_use]
-pub fn part_1(input: &str) -> u32 {
-    let Ok(input) = Input::from_str(input);
-    input.total_rating()
+pub fn part_1(input: &str) -> u64 {
+    let (workflows, parts) = input.split_once("\n\n").unwrap();
+    let Ok(workflows) = Workflows::from_str(workflows);
+    parts
+        .lines()
+        .map(|line| Part::from_str(line).unwrap())
+        .filter(|&part| workflows.accepts(part))
+        .map(|part| part.rating())
+        .sum()
 }
 
 #[must_use]
-pub fn part_2(input: &str) -> u32 {
-    0
+pub fn part_2(input: &str) -> u64 {
+    let (workflows, _) = input.split_once("\n\n").unwrap();
+    let Ok(workflows) = Workflows::from_str(workflows);
+    workflows.possible_accepted_parts()
 }
 
 #[cfg(test)]
@@ -37,12 +48,12 @@ mod tests {
 
     #[test]
     fn example_2() {
-        assert_eq!(0, part_2(EXAMPLE));
+        assert_eq!(167_409_079_868_000, part_2(EXAMPLE));
     }
 
     #[test]
     fn answer_2() {
-        assert_eq!(0, part_2(INPUT));
+        assert_eq!(127_517_902_575_337, part_2(INPUT));
     }
 
     #[bench]

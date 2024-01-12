@@ -1,22 +1,7 @@
-use itertools::Itertools;
 use std::collections::HashMap;
 use std::str::FromStr;
 
-#[derive(Debug, Copy, Clone)]
-struct Part {
-    x: u32,
-    m: u32,
-    a: u32,
-    s: u32,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Category {
-    ExtremeLyCoolLooking,
-    Musical,
-    Aerodynamic,
-    Shiny,
-}
+use super::{Category, Part, PartRange};
 
 #[derive(Debug)]
 struct Workflow {
@@ -34,7 +19,7 @@ struct Rule {
 struct Condition {
     category: Category,
     operator: Operator,
-    value: u32,
+    value: u64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -51,24 +36,8 @@ enum RuleResult {
 }
 
 #[derive(Debug)]
-pub struct Input {
-    workflows: HashMap<String, Workflow>,
-    parts: Vec<Part>,
-}
-
-impl Part {
-    const fn rating(&self) -> u32 {
-        self.x + self.m + self.a + self.s
-    }
-
-    const fn get(&self, category: Category) -> u32 {
-        match category {
-            Category::ExtremeLyCoolLooking => self.x,
-            Category::Musical => self.m,
-            Category::Aerodynamic => self.a,
-            Category::Shiny => self.s,
-        }
-    }
+pub struct Workflows {
+    list: HashMap<String, Workflow>,
 }
 
 impl Workflow {
@@ -90,20 +59,53 @@ impl Rule {
 }
 
 impl Condition {
-    fn evaluate(self, part: Part) -> bool {
+    const fn evaluate(self, part: Part) -> bool {
         let part_value = part.get(self.category);
         match self.operator {
             Operator::MoreThan => part_value > self.value,
             Operator::LessThan => part_value < self.value,
         }
     }
+
+    fn evaluate_range(self, parts: PartRange) -> (Option<PartRange>, Option<PartRange>) {
+        match self.operator {
+            Operator::MoreThan => {
+                let val = parts.get(self.category);
+                if val.min > self.value {
+                    return (Some(parts), None);
+                }
+                if val.max <= self.value {
+                    return (None, Some(parts));
+                }
+                let mut a = parts;
+                let mut b = parts;
+                a.get_mut(self.category).min = self.value + 1;
+                b.get_mut(self.category).max = self.value;
+                (Some(a), Some(b))
+            }
+            Operator::LessThan => {
+                let val = parts.get(self.category);
+                if val.max < self.value {
+                    return (Some(parts), None);
+                }
+                if val.min >= self.value {
+                    return (None, Some(parts));
+                }
+                let mut a = parts;
+                let mut b = parts;
+                a.get_mut(self.category).max = self.value - 1;
+                b.get_mut(self.category).min = self.value;
+                (Some(a), Some(b))
+            }
+        }
+    }
 }
 
-impl Input {
-    fn evaluate(&self, part: Part) -> bool {
+impl Workflows {
+    pub fn accepts(&self, part: Part) -> bool {
         let mut workflow = "in";
         loop {
-            match self.workflows.get(workflow).unwrap().evaluate(part) {
+            match self.list.get(workflow).unwrap().evaluate(part) {
                 RuleResult::Workflow(next_workflow) => workflow = next_workflow.as_str(),
                 RuleResult::Accept => return true,
                 RuleResult::Reject => return false,
@@ -111,28 +113,34 @@ impl Input {
         }
     }
 
-    pub fn total_rating(&self) -> u32 {
-        self.parts
-            .iter()
-            .filter(|&&part| self.evaluate(part))
-            .map(Part::rating)
-            .sum()
+    pub fn possible_accepted_parts(&self) -> u64 {
+        let mut accepted = 0;
+        let mut todo = vec![(PartRange::new(1, 4000), "in")];
+        while let Some((mut range, workflow)) = todo.pop() {
+            let workflow = self.list.get(workflow).unwrap();
+            for rule in &workflow.rules {
+                let (a, b) = rule.condition.map_or((Some(range), None), |condition| {
+                    condition.evaluate_range(range)
+                });
+                if let Some(a) = a {
+                    match &rule.result {
+                        RuleResult::Accept => accepted += a.size(),
+                        RuleResult::Reject => {}
+                        RuleResult::Workflow(name) => todo.push((a, &name)),
+                    }
+                }
+                if let Some(b) = b {
+                    range = b;
+                } else {
+                    break;
+                }
+            }
+        }
+        accepted
     }
 }
 
 // PARSING //
-
-impl From<char> for Category {
-    fn from(c: char) -> Self {
-        match c {
-            'x' => Self::ExtremeLyCoolLooking,
-            'm' => Self::Musical,
-            'a' => Self::Aerodynamic,
-            's' => Self::Shiny,
-            _ => panic!("Unknown category: {c}"),
-        }
-    }
-}
 
 impl From<char> for Operator {
     fn from(c: char) -> Self {
@@ -141,26 +149,6 @@ impl From<char> for Operator {
             '<' => Self::LessThan,
             _ => panic!("Unknown operator: {c}"),
         }
-    }
-}
-
-impl FromStr for Part {
-    type Err = !;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (x, m, a, s) = s
-            .strip_prefix('{')
-            .unwrap()
-            .strip_suffix('}')
-            .unwrap()
-            .split(',')
-            .map(|c| {
-                let (_, val) = c.split_once('=').unwrap();
-                u32::from_str(val).unwrap()
-            })
-            .collect_tuple()
-            .unwrap();
-        Ok(Self { x, m, a, s })
     }
 }
 
@@ -216,17 +204,16 @@ impl FromStr for RuleResult {
     }
 }
 
-impl FromStr for Input {
+impl FromStr for Workflows {
     type Err = !;
 
     fn from_str(s: &str) -> Result<Self, !> {
-        let (workflows, parts) = s.split_once("\n\n").unwrap();
-        let workflows = workflows
+        let list = s
             .lines()
             .map(|line| line.parse().unwrap())
             .map(|workflow: Workflow| (workflow.name.clone(), workflow))
             .collect();
-        let parts = parts.lines().map(|line| line.parse().unwrap()).collect();
-        Ok(Self { workflows, parts })
+
+        Ok(Self { list })
     }
 }
